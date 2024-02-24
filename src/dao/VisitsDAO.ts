@@ -23,12 +23,12 @@ export class VisitsDAO {
    * @return
    */
   async getVisitCount(visit: Visit): Promise<number> {
-    let params = {
+    const params = {
       TableName: this.TableName,
       Key: this.generateVisitItem(visit),
       ProjectionExpression: this.VisitCountAttr,
     };
-    let output = await ddbDocClient.send(new GetCommand(params));
+    const output = await ddbDocClient.send(new GetCommand(params));
     if (
       output.Item === undefined ||
       output.Item[this.VisitCountAttr] === undefined
@@ -46,7 +46,7 @@ export class VisitsDAO {
    */
   async recordVisit(visit: Visit): Promise<void> {
     // load it if it exists
-    let visitInDatabase: Visit | undefined = await this.getVisit(visit);
+    const visitInDatabase: Visit | undefined = await this.getVisit(visit);
     if (visitInDatabase !== undefined) {
       await this.incrementVisit(visit);
     } else {
@@ -79,11 +79,11 @@ export class VisitsDAO {
   }
 
   private async getVisit(visit: Visit): Promise<Visit | undefined> {
-    let params = {
+    const params = {
       TableName: this.TableName,
       Key: this.generateVisitItem(visit),
     };
-    let output = await ddbDocClient.send(new GetCommand(params));
+    const output = await ddbDocClient.send(new GetCommand(params));
     return output.Item == undefined
       ? undefined
       : new Visit(
@@ -99,7 +99,7 @@ export class VisitsDAO {
    * @param visit
    */
   async deleteVisit(visit: Visit): Promise<void> {
-    let params = {
+    const params = {
       TableName: this.TableName,
       Key: this.generateVisitItem(visit),
     };
@@ -119,7 +119,7 @@ export class VisitsDAO {
     lastLocation: string | undefined = undefined,
     limit: number = 2
   ): Promise<DataPage<Visit>> {
-    let params = {
+    const params = {
       KeyConditionExpression: this.VisitorAttr + " = :v",
       ExpressionAttributeValues: {
         ":v": visitor,
@@ -135,9 +135,9 @@ export class VisitsDAO {
             },
     };
 
-    let items: Visit[] = [];
-    let data = await ddbDocClient.send(new QueryCommand(params));
-    let hasMorePages = data.LastEvaluatedKey !== undefined;
+    const items: Visit[] = [];
+    const data = await ddbDocClient.send(new QueryCommand(params));
+    const hasMorePages = data.LastEvaluatedKey !== undefined;
     data.Items?.forEach((item) =>
       items.push(
         new Visit(
@@ -163,7 +163,7 @@ export class VisitsDAO {
     lastVisitor: string | undefined = undefined,
     limit: number = 2
   ): Promise<DataPage<Visit>> {
-    let params = {
+    const params = {
       KeyConditionExpression: this.LocationAttr + " = :loc",
       ExpressionAttributeValues: {
         ":loc": location,
@@ -180,9 +180,9 @@ export class VisitsDAO {
             },
     };
 
-    let items: Visit[] = [];
-    let data = await ddbDocClient.send(new QueryCommand(params));
-    let hasMorePages = data.LastEvaluatedKey !== undefined;
+    const items: Visit[] = [];
+    const data = await ddbDocClient.send(new QueryCommand(params));
+    const hasMorePages = data.LastEvaluatedKey !== undefined;
     data.Items?.forEach((item) =>
       items.push(
         new Visit(
