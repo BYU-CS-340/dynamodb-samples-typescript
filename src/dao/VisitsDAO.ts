@@ -1,11 +1,12 @@
 import {
   DeleteCommand,
+  DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { ddbDocClient } from "./ClientDynamo";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { Visit } from "../entity/Visit";
 import { DataPage } from "../entity/DataPage";
 
@@ -15,6 +16,8 @@ export class VisitsDAO {
   readonly visitorAttr = "visitor";
   readonly locationAttr = "visit_location"; // 'location' is a reserved keyword. A column can be named location, but then pagination cannot query using that column.
   readonly visitCountAttr = "visit_count";
+
+  private readonly client = DynamoDBDocumentClient.from(new DynamoDBClient());
 
   /**
    * Retrieve the number of times visitor has visited location
@@ -28,7 +31,7 @@ export class VisitsDAO {
       Key: this.generateVisitItem(visit),
       ProjectionExpression: this.visitCountAttr, // Don't include if you want all attributes
     };
-    const output = await ddbDocClient.send(new GetCommand(params));
+    const output = await this.client.send(new GetCommand(params));
     if (
       output.Item === undefined ||
       output.Item[this.visitCountAttr] === undefined
@@ -64,7 +67,7 @@ export class VisitsDAO {
         [this.visitCountAttr]: visit.visit_count,
       },
     };
-    await ddbDocClient.send(new PutCommand(params));
+    await this.client.send(new PutCommand(params));
   }
 
   private async incrementVisit(visitor: Visit): Promise<void> {
@@ -75,7 +78,7 @@ export class VisitsDAO {
       UpdateExpression:
         "SET " + this.visitCountAttr + " = " + this.visitCountAttr + " + :inc",
     };
-    await ddbDocClient.send(new UpdateCommand(params));
+    await this.client.send(new UpdateCommand(params));
   }
 
   private async getVisit(visit: Visit): Promise<Visit | undefined> {
@@ -83,7 +86,7 @@ export class VisitsDAO {
       TableName: this.tableName,
       Key: this.generateVisitItem(visit),
     };
-    const output = await ddbDocClient.send(new GetCommand(params));
+    const output = await this.client.send(new GetCommand(params));
     return output.Item == undefined
       ? undefined
       : new Visit(
@@ -103,7 +106,7 @@ export class VisitsDAO {
       TableName: this.tableName,
       Key: this.generateVisitItem(visit),
     };
-    await ddbDocClient.send(new DeleteCommand(params));
+    await this.client.send(new DeleteCommand(params));
   }
 
   /**
@@ -136,7 +139,7 @@ export class VisitsDAO {
     };
 
     const items: Visit[] = [];
-    const data = await ddbDocClient.send(new QueryCommand(params));
+    const data = await this.client.send(new QueryCommand(params));
     const hasMorePages = data.LastEvaluatedKey !== undefined;
     data.Items?.forEach((item) =>
       items.push(
@@ -181,7 +184,7 @@ export class VisitsDAO {
     };
 
     const items: Visit[] = [];
-    const data = await ddbDocClient.send(new QueryCommand(params));
+    const data = await this.client.send(new QueryCommand(params));
     const hasMorePages = data.LastEvaluatedKey !== undefined;
     data.Items?.forEach((item) =>
       items.push(
