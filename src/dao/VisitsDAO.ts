@@ -10,11 +10,11 @@ import { Visit } from "../entity/Visit";
 import { DataPage } from "../entity/DataPage";
 
 export class VisitsDAO {
-  readonly TableName = "visit";
-  readonly IndexName = "visit_location-visitor-index";
-  readonly VisitorAttr = "visitor";
-  readonly LocationAttr = "visit_location"; // 'location' is a reserved keyword. A column can be named location, but then pagination cannot query using that column.
-  readonly VisitCountAttr = "visit_count";
+  readonly tableName = "visit";
+  readonly indexName = "visit_location-visitor-index";
+  readonly visitorAttr = "visitor";
+  readonly locationAttr = "visit_location"; // 'location' is a reserved keyword. A column can be named location, but then pagination cannot query using that column.
+  readonly visitCountAttr = "visit_count";
 
   /**
    * Retrieve the number of times visitor has visited location
@@ -24,18 +24,18 @@ export class VisitsDAO {
    */
   async getVisitCount(visit: Visit): Promise<number> {
     const params = {
-      TableName: this.TableName,
+      TableName: this.tableName,
       Key: this.generateVisitItem(visit),
-      ProjectionExpression: this.VisitCountAttr,
+      ProjectionExpression: this.visitCountAttr, // Don't include if you want all attributes
     };
     const output = await ddbDocClient.send(new GetCommand(params));
     if (
       output.Item === undefined ||
-      output.Item[this.VisitCountAttr] === undefined
+      output.Item[this.visitCountAttr] === undefined
     ) {
       return 0;
     } else {
-      return output.Item[this.VisitCountAttr];
+      return output.Item[this.visitCountAttr];
     }
   }
 
@@ -57,11 +57,11 @@ export class VisitsDAO {
 
   private async putVisit(visit: Visit): Promise<void> {
     const params = {
-      TableName: this.TableName,
+      TableName: this.tableName,
       Item: {
-        [this.VisitorAttr]: visit.visitor,
-        [this.LocationAttr]: visit.visit_location,
-        [this.VisitCountAttr]: visit.visit_count,
+        [this.visitorAttr]: visit.visitor,
+        [this.locationAttr]: visit.visit_location,
+        [this.visitCountAttr]: visit.visit_count,
       },
     };
     await ddbDocClient.send(new PutCommand(params));
@@ -69,27 +69,27 @@ export class VisitsDAO {
 
   private async incrementVisit(visitor: Visit): Promise<void> {
     const params = {
-      TableName: this.TableName,
+      TableName: this.tableName,
       Key: this.generateVisitItem(visitor),
       ExpressionAttributeValues: { ":inc": 1 },
       UpdateExpression:
-        "SET " + this.VisitCountAttr + " = " + this.VisitCountAttr + " + :inc",
+        "SET " + this.visitCountAttr + " = " + this.visitCountAttr + " + :inc",
     };
     await ddbDocClient.send(new UpdateCommand(params));
   }
 
   private async getVisit(visit: Visit): Promise<Visit | undefined> {
     const params = {
-      TableName: this.TableName,
+      TableName: this.tableName,
       Key: this.generateVisitItem(visit),
     };
     const output = await ddbDocClient.send(new GetCommand(params));
     return output.Item == undefined
       ? undefined
       : new Visit(
-          output.Item[this.VisitorAttr],
-          output.Item[this.LocationAttr],
-          output.Item[this.VisitCountAttr]
+          output.Item[this.visitorAttr],
+          output.Item[this.locationAttr],
+          output.Item[this.visitCountAttr]
         );
   }
 
@@ -100,7 +100,7 @@ export class VisitsDAO {
    */
   async deleteVisit(visit: Visit): Promise<void> {
     const params = {
-      TableName: this.TableName,
+      TableName: this.tableName,
       Key: this.generateVisitItem(visit),
     };
     await ddbDocClient.send(new DeleteCommand(params));
@@ -120,18 +120,18 @@ export class VisitsDAO {
     limit: number = 2
   ): Promise<DataPage<Visit>> {
     const params = {
-      KeyConditionExpression: this.VisitorAttr + " = :v",
+      KeyConditionExpression: this.visitorAttr + " = :v",
       ExpressionAttributeValues: {
         ":v": visitor,
       },
-      TableName: this.TableName,
+      TableName: this.tableName,
       Limit: limit,
       ExclusiveStartKey:
         lastLocation === undefined
           ? undefined
           : {
-              [this.VisitorAttr]: visitor,
-              [this.LocationAttr]: lastLocation,
+              [this.visitorAttr]: visitor,
+              [this.locationAttr]: lastLocation,
             },
     };
 
@@ -141,9 +141,9 @@ export class VisitsDAO {
     data.Items?.forEach((item) =>
       items.push(
         new Visit(
-          item[this.VisitorAttr],
-          item[this.LocationAttr],
-          item[this.VisitCountAttr]
+          item[this.visitorAttr],
+          item[this.locationAttr],
+          item[this.visitCountAttr]
         )
       )
     );
@@ -164,19 +164,19 @@ export class VisitsDAO {
     limit: number = 2
   ): Promise<DataPage<Visit>> {
     const params = {
-      KeyConditionExpression: this.LocationAttr + " = :loc",
+      KeyConditionExpression: this.locationAttr + " = :loc",
       ExpressionAttributeValues: {
         ":loc": location,
       },
-      TableName: this.TableName,
-      IndexName: this.IndexName,
+      TableName: this.tableName,
+      IndexName: this.indexName,
       Limit: limit,
       ExclusiveStartKey:
         lastVisitor === undefined
           ? undefined
           : {
-              [this.VisitorAttr]: lastVisitor,
-              [this.LocationAttr]: location,
+              [this.visitorAttr]: lastVisitor,
+              [this.locationAttr]: location,
             },
     };
 
@@ -186,9 +186,9 @@ export class VisitsDAO {
     data.Items?.forEach((item) =>
       items.push(
         new Visit(
-          item[this.VisitorAttr],
-          item[this.LocationAttr],
-          item[this.VisitCountAttr]
+          item[this.visitorAttr],
+          item[this.locationAttr],
+          item[this.visitCountAttr]
         )
       )
     );
@@ -198,8 +198,8 @@ export class VisitsDAO {
 
   private generateVisitItem(visit: Visit) {
     return {
-      [this.VisitorAttr]: visit.visitor,
-      [this.LocationAttr]: visit.visit_location,
+      [this.visitorAttr]: visit.visitor,
+      [this.locationAttr]: visit.visit_location,
     };
   }
 }
