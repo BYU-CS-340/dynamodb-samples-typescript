@@ -1,28 +1,35 @@
 import { Visit } from "./entity/Visit";
 import { DataPage } from "./entity/DataPage";
 import { VisitsDAO } from "./dao/VisitsDAO";
+import { VisitorDAO } from "./dao/VisitorDAO";
 
+/**
+ * Requires a 'visits' table with 'visitor', 'visit_location' and 'visit_count' attributes with
+ * 'visitor' as the partition key, and a 'visitor' table with 'name', 'email', 'city' and 'state'
+ * attributes with a partion key of 'name'.
+ */
 class Main {
   async run() {
-    const dao = new VisitsDAO();
+    const visitsDao = new VisitsDAO();
+    const visitorDao = new VisitorDAO();
 
     /**
      * Delete old items
      */
     await Promise.all([
-      dao.deleteVisit(new Visit("matt", "utah")),
-      dao.deleteVisit(new Visit("matt", "guatemala")),
-      dao.deleteVisit(new Visit("matt", "idaho")),
-      dao.deleteVisit(new Visit("matt", "italy")),
-      dao.deleteVisit(new Visit("elliot", "italy")),
-      dao.deleteVisit(new Visit("nate", "italy")),
-      dao.deleteVisit(new Visit("adam", "italy")),
+      visitsDao.deleteVisit(new Visit("matt", "utah")),
+      visitsDao.deleteVisit(new Visit("matt", "guatemala")),
+      visitsDao.deleteVisit(new Visit("matt", "idaho")),
+      visitsDao.deleteVisit(new Visit("matt", "italy")),
+      visitsDao.deleteVisit(new Visit("elliot", "italy")),
+      visitsDao.deleteVisit(new Visit("nate", "italy")),
+      visitsDao.deleteVisit(new Visit("adam", "italy")),
     ]);
 
     /**
      * Get an Item
      */
-    const count = await dao.getVisitCount(new Visit("matt", "guatemala"));
+    const count = await visitsDao.getVisitCount(new Visit("matt", "guatemala"));
     console.log(
       "(Just getting) Matt has visited Guatemala " + count + " time(s)"
     );
@@ -30,10 +37,10 @@ class Main {
     /**
      * Update an item, one of which exists (guatemala), one of which is new (utah)
      */
-    await dao.recordVisit(new Visit("matt", "utah"));
-    await dao.recordVisit(new Visit("matt", "guatemala"));
+    await visitsDao.recordVisit(new Visit("matt", "utah"));
+    await visitsDao.recordVisit(new Visit("matt", "guatemala"));
 
-    const countGuatemala = await dao.getVisitCount(
+    const countGuatemala = await visitsDao.getVisitCount(
       new Visit("matt", "guatemala")
     );
     console.log(
@@ -42,7 +49,9 @@ class Main {
         " time(s)"
     );
 
-    const countUtah: number = await dao.getVisitCount(new Visit("matt", "utah"));
+    const countUtah: number = await visitsDao.getVisitCount(
+      new Visit("matt", "utah")
+    );
     console.log(
       "(After recording) Matt has visited utah " + countUtah + " time(s)"
     );
@@ -50,8 +59,8 @@ class Main {
     /**
      * Delete an item
      */
-    await dao.deleteVisit(new Visit("matt", "utah"));
-    const countUtah2 = await dao.getVisitCount(new Visit("matt", "utah"));
+    await visitsDao.deleteVisit(new Visit("matt", "utah"));
+    const countUtah2 = await visitsDao.getVisitCount(new Visit("matt", "utah"));
     console.log(
       "(After deletion) Matt has visited utah " + countUtah2 + " time(s)"
     );
@@ -60,17 +69,17 @@ class Main {
      * Add more items
      */
     await Promise.all([
-      dao.recordVisit(new Visit("matt", "idaho")),
-      dao.recordVisit(new Visit("matt", "italy")),
-      dao.recordVisit(new Visit("elliot", "italy")),
-      dao.recordVisit(new Visit("nate", "italy")),
-      dao.recordVisit(new Visit("adam", "italy")),
+      visitsDao.recordVisit(new Visit("matt", "idaho")),
+      visitsDao.recordVisit(new Visit("matt", "italy")),
+      visitsDao.recordVisit(new Visit("elliot", "italy")),
+      visitsDao.recordVisit(new Visit("nate", "italy")),
+      visitsDao.recordVisit(new Visit("adam", "italy")),
     ]);
 
     /**
      * Get the first page (lastlocation = null) of items
      */
-    const page: DataPage<Visit> = await dao.getVisitedLocations("matt");
+    const page: DataPage<Visit> = await visitsDao.getVisitedLocations("matt");
     const visits: Visit[] = page.values;
     const hasMorePages = page.hasMorePages;
     console.log(
@@ -86,7 +95,7 @@ class Main {
     /**
      * Get the second page (lastlocation = the last thing returned from the first page) of items
      */
-    const page2: DataPage<Visit> = await dao.getVisitedLocations(
+    const page2: DataPage<Visit> = await visitsDao.getVisitedLocations(
       "matt",
       lastLocation
     );
@@ -103,7 +112,7 @@ class Main {
     /**
      * Using an Index: Get the first page (lastVisitor = null) of items
      */
-    const page3: DataPage<Visit> = await dao.getVisitors("italy");
+    const page3: DataPage<Visit> = await visitsDao.getVisitors("italy");
     const visitsToItaly: Visit[] = page3.values;
     const hasMorePages3: boolean = page3.hasMorePages;
     console.log(
@@ -119,7 +128,10 @@ class Main {
     /**
      * Using an Index: Get the second page (lastVisitor = the last thing returned from the first page) of items
      */
-    const page4: DataPage<Visit> = await dao.getVisitors("italy", lastVisitor);
+    const page4: DataPage<Visit> = await visitsDao.getVisitors(
+      "italy",
+      lastVisitor
+    );
     const visitsToItaly2: Visit[] = page4.values;
     const hasMorePages4: boolean = page4.hasMorePages;
     console.log(
@@ -129,6 +141,13 @@ class Main {
         hasMorePages4
     );
     this.verify(!hasMorePages4);
+
+    /**
+     * Get multiple users using BatchGet
+     */
+    const visitors = await visitorDao.batchGetVisitors(["Jerod", "Emily"]);
+    console.log("Retrieved visitors:");
+    visitors.forEach((visitor) => console.log("\t" + visitor.toString()));
   }
 
   private verify(b: boolean): void {
