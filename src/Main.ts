@@ -6,7 +6,9 @@ import { VisitorDAO } from "./dao/VisitorDAO";
 /**
  * Requires a 'visits' table with 'visitor', 'visit_location' and 'visit_count' attributes with
  * 'visitor' as the partition key, and a 'visitor' table with 'name', 'email', 'city' and 'state'
- * attributes with a partion key of 'name'.
+ * attributes with 'name' as the partion key.
+ * 
+ * Note: Name is not a good partition key, but it will work for the purposes of these examples.
  */
 class Main {
   async run() {
